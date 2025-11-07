@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>跳转中...</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:720px;margin:12vh auto;padding:0 1rem;line-height:1.65}
+  code{background:#f6f6f6;border:1px solid #eee;border-radius:6px;padding:0 .4em}
+  .hint{color:#666}
+</style>
+<body>
+  <h1>🔁 正在跳转</h1>
+  <p class="hint">如果没有自动跳转，请检查你的链接是否为 <code>index.html?url=Base64</code>（或兼容的 <code>index.html&amp;url=Base64</code>）。</p>
+  <p id="status" class="hint">解析参数中…</p>
+
+<script>
+(function () {
+  // 1) 取出 ?url=xxxxx；同时兼容 /index.html&url=xxxxx 的非常规写法
+  function getEncodedParam() {
+    const sp = new URLSearchParams(location.search);
+    let v = sp.get('url');
+    if (v) return v;
+
+    // 兼容：路径里出现 index.html&url=xxxxx
+    const m = location.pathname.match(/index\.html&url=([^/?#]+)/i);
+    if (m && m[1]) return decodeURIComponent(m[1]);
+
+    return null;
+  }
+
+  // 2) Base64 解码：支持标准和 URL-safe（- _），自动补齐 padding
+  function b64DecodeUtf8(b64) {
+    // URL-safe -> 标准
+    b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    // 补齐到 4 的倍数
+    while (b64.length % 4 !== 0) b64 += '=';
+    // atob -> bytes
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    // UTF-8 解码
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+
+  // 3) 只允许 http/https，补救可能的 //example.com 或缺协议情况
+  function normalizeToHttpUrl(s) {
+    try {
+      // 如果是 //example.com 这种 schema-less
+      if (/^\/\//.test(s)) s = 'https:' + s;
+      // 如果缺协议但像 domain/path，则默认 https
+      if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) s = 'https://' + s;
+
+      const u = new URL(s);
+      if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+      return null; // 非 http(s) 拒绝
+    } catch { return null; }
+  }
+
+  function setStatus(msg) {
+    document.getElementById('status').textContent = msg;
+  }
+
+  const enc = getEncodedParam();
+  if (!enc) {
+    setStatus('缺少 url 参数。例如：/index.html?url=aHR0cHM6Ly9leGFtcGxlLmNvbS8=');
+    return;
+  }
+
+  let decoded;
+  try {
+    decoded = b64DecodeUtf8(enc.trim());
+  } catch (e) {
+    setStatus('Base64 解码失败，请确认编码是否正确（支持 URL-safe 变体）。');
+    return;
+  }
+
+  const target = normalizeToHttpUrl(decoded);
+  if (!target) {
+    setStatus('目标链接协议不被允许或格式错误，仅允许 http(s)。');
+    return;
+  }
+
+  setStatus('将跳转到：' + target);
+  // 用 replace 避免产生返回历史
+  location.replace(target);
+})();
+</script>
+</body>
+</html>
