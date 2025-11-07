@@ -2,102 +2,82 @@
 <html lang="ja">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>セキュリティ検査中…</title>
+<title>セキュリティ検査中...</title>
 <style>
-  :root { --card-w: 760px; --delay-ms: 800ms; }
+  :root { --card-w: 760px; }
   * { box-sizing: border-box }
-  body{
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans JP", sans-serif;
-    margin: 0; padding: 0 1rem; line-height: 1.7; color: #222;
-    display:flex; min-height:100svh; align-items:center; justify-content:center;
-    background: radial-gradient(1200px 600px at 20% -10%, #f7faff, transparent 60%),
-                radial-gradient(1000px 500px at 110% 90%, #f8fff7, transparent 60%),
-                #ffffff;
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+    margin: 0; padding: 0 1rem;
+    background: linear-gradient(135deg, #f8fbff, #fefefe);
+    display:flex; align-items:center; justify-content:center; min-height:100vh;
   }
-  .card{
-    width:100%; max-width: var(--card-w);
-    border: 1px solid #e8e8e8; border-radius: 16px; padding: 28px 22px;
-    box-shadow: 0 8px 30px rgba(0,0,0,.06); background:#fff;
-    animation: pop .35s ease-out both;
+  .card {
+    width:100%; max-width:var(--card-w);
+    background:#fff; border:1px solid #e8e8e8; border-radius:16px;
+    box-shadow:0 8px 24px rgba(0,0,0,.08);
+    padding:2rem 1.5rem;
+    text-align:center;
+    animation: fadeIn .4s ease-out;
   }
-  h1{font-size:1.35rem; margin: 0 0 .4rem 0}
-  .hint{color:#666; margin:.2rem 0 .8rem}
-  code{background:#f6f6f6;border:1px solid #eee;border-radius:6px;padding:.05em .45em}
-
-  /* Spinner */
-  .row{display:flex; gap:16px; align-items:center; margin:.5rem 0 .8rem}
-  .spinner{
-    width:30px; height:30px; border-radius:50%;
-    border:3px solid rgba(0,0,0,.08);
-    border-top-color: rgba(0,0,0,.55);
-    animation: spin 0.9s linear infinite;
+  h1 { font-size:1.4rem; margin-bottom:.5rem; }
+  .hint { color:#666; margin-bottom:1rem; }
+  .spinner {
+    width:50px; height:50px;
+    border:5px solid #e4e4e4;
+    border-top-color:#0078ff;
+    border-radius:50%;
+    margin:1rem auto;
+    animation: spin 1s linear infinite;
   }
-
-  /* Animated progress bar */
-  .bar-wrap{height:12px; border-radius:999px; background:#f1f1f1; overflow:hidden; border:1px solid #eee}
-  .bar{
-    width:0%; height:100%;
-    background: linear-gradient(90deg, rgba(0,0,0,.2), rgba(0,0,0,.45), rgba(0,0,0,.2));
-    background-size: 200% 100%;
-    animation: sweep var(--delay-ms) ease-out forwards, shine 1.2s linear infinite;
+  .bar-wrap {
+    height:12px; background:#eee; border-radius:6px;
+    overflow:hidden; margin-top:1rem;
   }
+  .bar {
+    height:100%; width:0%;
+    background:linear-gradient(90deg,#0078ff,#00b4ff);
+    animation: load 2s linear forwards;
+  }
+  .status { color:#444; margin-top:1rem; }
+  a { color:#0078ff; text-decoration:none; }
 
-  /* Fading status text */
-  #status{color:#444; margin-top:.6rem}
-  .small{font-size:.92rem}
-
-  @keyframes spin { to { transform: rotate(360deg) } }
-  @keyframes sweep { from { width: 0% } to { width: 100% } }
-  @keyframes shine { from { background-position: 200% 0 } to { background-position: -200% 0 } }
-  @keyframes pop { from { transform: translateY(8px); opacity:0 } to { transform:none; opacity:1 } }
-
-  .muted{color:#8a8a8a}
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes load { from{width:0%} to{width:100%} }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
 </style>
 <body>
-  <main class="card" role="main" aria-live="polite">
-    <h1>🔐 サイトの安全性を確認しています…</h1>
-    <p class="hint">数秒以内に自動的に目的のページへ移動します。移動しない場合は、URL が <code>index.html?url=Base64</code>（互換：<code>index.html&amp;url=Base64</code>）であることを確認してください。</p>
-
-    <div class="row">
-      <div class="spinner" aria-hidden="true"></div>
-      <div style="flex:1">
-        <div class="bar-wrap"><div class="bar"></div></div>
-      </div>
-    </div>
-
-    <p id="status" class="small">パラメータを解析しています…</p>
-    <p id="fallback" class="small muted" style="display:none">
-      自動で移動しない場合は <a id="fallbackLink" href="#">こちら</a> をクリックしてください。
-    </p>
-  </main>
+  <div class="card">
+    <h1>🔐 サイトの安全性を確認しています...</h1>
+    <p class="hint">安全性を検査しています。<br>2秒後に自動的に目的のページへ移動します。</p>
+    <div class="spinner"></div>
+    <div class="bar-wrap"><div class="bar"></div></div>
+    <p id="status" class="status">URLパラメータを解析中...</p>
+    <p id="fallback" style="display:none"><a id="fallbackLink" href="#">こちらをクリックして移動</a></p>
+  </div>
 
 <script>
-(function () {
-  // ======= 設定（アニメ表示のための短い遅延）=======
-  const DELAY_MS = 800; // アニメーションを見せる待機時間。不要なら 0 に。
+(function(){
+  const DELAY_MS = 2000; // 2秒待ってから遷移
 
-  // --- 1) url パラメータ取得（?url= と index.html&url= の両対応） ---
   function getEncodedParam() {
     const sp = new URLSearchParams(location.search);
     let v = sp.get('url');
     if (v) return v;
-
     const m = location.pathname.match(/index\.html&url=([^/?#]+)/i);
     if (m && m[1]) return decodeURIComponent(m[1]);
     return null;
   }
 
-  // --- 2) Base64 デコード（URL-safe対応、UTF-8対応） ---
   function b64DecodeUtf8(b64) {
-    b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    b64 = b64.replace(/-/g,'+').replace(/_/g,'/');
     while (b64.length % 4 !== 0) b64 += '=';
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new TextDecoder('utf-8').decode(bytes);
+    for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
   }
 
-  // --- 3) http/https のみ許可、スキーマ補正 ---
   function normalizeToHttpUrl(s) {
     try {
       if (/^\/\//.test(s)) s = 'https:' + s;
@@ -108,40 +88,24 @@
     } catch { return null; }
   }
 
-  function setStatus(msg) { document.getElementById('status').textContent = msg; }
+  function setStatus(msg){ document.getElementById('status').textContent = msg; }
 
   const enc = getEncodedParam();
-  if (!enc) {
-    setStatus('URL パラメータが見つかりません。例：/index.html?url=aHR0cHM6Ly9leGFtcGxlLmNvbS8=');
-    return;
-  }
+  if(!enc){ setStatus('URLパラメータが見つかりません。例：?url=Base64'); return; }
 
   let decoded;
-  try {
-    decoded = b64DecodeUtf8(enc.trim());
-  } catch {
-    setStatus('Base64 のデコードに失敗しました。URL-safe（-/_・パディング省略）にも対応しています。');
-    return;
-  }
+  try{ decoded = b64DecodeUtf8(enc.trim()); }
+  catch{ setStatus('Base64のデコードに失敗しました。'); return; }
 
   const target = normalizeToHttpUrl(decoded);
-  if (!target) {
-    setStatus('遷移先 URL の形式が不正、または許可されていないプロトコルです（http/https のみ）。');
-    return;
-  }
+  if(!target){ setStatus('不正なURL、またはhttp/httpsではありません。'); return; }
 
-  setStatus('安全性を確認しました。まもなく移動します：' + target);
+  setStatus('安全性を確認しました。まもなく移動します...');
+  const link = document.getElementById('fallbackLink');
+  link.href = target;
+  document.getElementById('fallback').style.display = 'block';
 
-  // フォールバックリンク（自動遷移できない環境向け）
-  const a = document.getElementById('fallbackLink');
-  a.href = target;
-  document.getElementById('fallback').style.display = '';
-
-  // 少しアニメーションを見せてから遷移
-  setTimeout(() => {
-    try { location.replace(target); }
-    catch { location.href = target; }
-  }, DELAY_MS);
+  setTimeout(()=>{ location.replace(target); }, DELAY_MS);
 })();
 </script>
 </body>
